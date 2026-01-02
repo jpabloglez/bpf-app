@@ -111,7 +111,7 @@ class _ChartsScreenState extends State<ChartsScreen> {
               ),
             ],
           ),
-        },
+        ),
       ),
     );
   }
@@ -167,11 +167,11 @@ class BPLineChart extends StatelessWidget {
       return const Center(child: Text('No data'));
     }
 
-    final spotsSystolic = readings.reversed.asMap().entries.map((entry) {
+    final spotsSystolic = readings.reversed.toList().asMap().entries.map((entry) {
       return FlSpot(entry.key.toDouble(), entry.value.systolic.toDouble());
     }).toList();
 
-    final spotsDiastolic = readings.reversed.asMap().entries.map((entry) {
+    final spotsDiastolic = readings.reversed.toList().asMap().entries.map((entry) {
       return FlSpot(entry.key.toDouble(), entry.value.diastolic.toDouble());
     }).toList();
 
@@ -256,7 +256,7 @@ class HeartRateChart extends StatelessWidget {
       return const Center(child: Text('No data'));
     }
 
-    final spots = readings.reversed.asMap().entries.map((entry) {
+    final spots = readings.reversed.toList().asMap().entries.map((entry) {
       return FlSpot(entry.key.toDouble(), entry.value.heartRate.toDouble());
     }).toList();
 
