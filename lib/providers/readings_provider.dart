@@ -40,7 +40,7 @@ class ReadingsProvider extends ChangeNotifier {
     _clearError();
 
     try {
-      final id = await _db.insertReading(reading);
+      await _db.insertReading(reading);
       await loadReadings(); // Reload to get the new reading with ID
     } catch (e) {
       _setError('Failed to add reading: $e');

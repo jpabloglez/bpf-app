@@ -111,7 +111,7 @@ class _AddReadingScreenState extends State<AddReadingScreen> {
 
                 // Check systolic > diastolic
                 final systolic = int.tryParse(_systolicController.text);
-                if (systolic != null && num != null && systolic <= num) {
+                if (systolic != null && systolic <= num) {
                   return 'Diastolic must be less than systolic';
                 }
 
