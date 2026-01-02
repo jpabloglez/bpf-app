@@ -110,8 +110,8 @@ class _ChartsScreenState extends State<ChartsScreen> {
                 child: HeartRateChart(readings: readings),
               ),
             ],
-          ),
-        ),
+          );
+        },
       ),
     );
   }
