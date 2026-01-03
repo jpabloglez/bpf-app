@@ -46,6 +46,7 @@ app.*.map.json
 # Android signing keys
 android/key.properties
 android/app/keystore/
+android/local.properties
 
 # iOS
 **/ios/**/*.mode1v3
