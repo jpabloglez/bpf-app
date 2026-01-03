@@ -14,12 +14,12 @@ A Flutter mobile application for tracking blood pressure readings with charts, a
 ## Screenshots
 
 ### Main Screen with Records
-![BP Tracker Main Screen](docs/static/bpf-tracker.png)
+![BP Tracker Main Screen](docs/static/bpf-records.png)
 
 *Home screen showing blood pressure readings with statistics summary and recent records list*
 
 ### Charts and Analytics
-![BP Tracker Charts](docs/static/bpf-records.png)
+![BP Tracker Charts](docs/static/bpf-tracker.png)
 
 *Interactive charts displaying blood pressure trends and heart rate over time*
 
