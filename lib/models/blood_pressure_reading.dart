@@ -1,12 +1,60 @@
 import 'package:flutter/material.dart';
 
+/// Blood pressure categories as defined by the American Heart Association /
+/// American College of Cardiology guideline.
+enum BpCategory {
+  normal('Normal'),
+  elevated('Elevated'),
+  stage1('High BP Stage 1'),
+  stage2('High BP Stage 2'),
+  crisis('Hypertensive Crisis');
+
+  const BpCategory(this.label);
+
+  final String label;
+
+  /// Classifies a reading. The highest category matched by either value wins.
+  static BpCategory classify(int systolic, int diastolic) {
+    if (systolic > 180 || diastolic > 120) return BpCategory.crisis;
+    if (systolic >= 140 || diastolic >= 90) return BpCategory.stage2;
+    if (systolic >= 130 || diastolic >= 80) return BpCategory.stage1;
+    if (systolic >= 120) return BpCategory.elevated;
+    return BpCategory.normal;
+  }
+
+  /// Indicator color; tuned to stay legible on light and dark surfaces.
+  Color colorFor(Brightness brightness) {
+    final dark = brightness == Brightness.dark;
+    switch (this) {
+      case BpCategory.normal:
+        return dark ? const Color(0xFF81C784) : const Color(0xFF2E7D32);
+      case BpCategory.elevated:
+        return dark ? const Color(0xFFFFD54F) : const Color(0xFF8D6E00);
+      case BpCategory.stage1:
+        return dark ? const Color(0xFFFFB74D) : const Color(0xFFE65100);
+      case BpCategory.stage2:
+        return dark ? const Color(0xFFE57373) : const Color(0xFFC62828);
+      case BpCategory.crisis:
+        return dark ? const Color(0xFFFF8A80) : const Color(0xFF8E0000);
+    }
+  }
+}
+
 class BloodPressureReading {
+  static const int minSystolic = 50;
+  static const int maxSystolic = 250;
+  static const int minDiastolic = 30;
+  static const int maxDiastolic = 150;
+  static const int minHeartRate = 30;
+  static const int maxHeartRate = 250;
+  static const int maxNotesLength = 500;
+
   final int? id;
-  final int systolic;       // mmHg (90-250 typical range)
-  final int diastolic;      // mmHg (60-150 typical range)
-  final int heartRate;      // bpm (40-220 typical range)
+  final int systolic; // mmHg
+  final int diastolic; // mmHg
+  final int heartRate; // bpm
   final DateTime timestamp; // When measurement was taken
-  final String? notes;      // Optional user notes
+  final String? notes; // Optional user notes
 
   BloodPressureReading({
     this.id,
@@ -16,53 +64,30 @@ class BloodPressureReading {
     required this.timestamp,
     this.notes,
   }) {
-    // Validation
-    if (systolic < 50 || systolic > 250) {
-      throw ArgumentError('Systolic must be between 50 and 250 mmHg');
+    if (systolic < minSystolic || systolic > maxSystolic) {
+      throw ArgumentError(
+          'Systolic must be between $minSystolic and $maxSystolic mmHg');
     }
-    if (diastolic < 30 || diastolic > 150) {
-      throw ArgumentError('Diastolic must be between 30 and 150 mmHg');
+    if (diastolic < minDiastolic || diastolic > maxDiastolic) {
+      throw ArgumentError(
+          'Diastolic must be between $minDiastolic and $maxDiastolic mmHg');
     }
-    if (heartRate < 30 || heartRate > 250) {
-      throw ArgumentError('Heart rate must be between 30 and 250 bpm');
+    if (heartRate < minHeartRate || heartRate > maxHeartRate) {
+      throw ArgumentError(
+          'Heart rate must be between $minHeartRate and $maxHeartRate bpm');
     }
     if (systolic <= diastolic) {
       throw ArgumentError('Systolic must be greater than diastolic');
     }
-  }
-
-  /// Blood pressure category based on AHA guidelines
-  String get category {
-    if (systolic < 120 && diastolic < 80) {
-      return 'Normal';
-    } else if (systolic < 130 && diastolic < 80) {
-      return 'Elevated';
-    } else if (systolic < 140 || diastolic < 90) {
-      return 'High BP Stage 1';
-    } else if (systolic < 180 || diastolic < 120) {
-      return 'High BP Stage 2';
-    } else {
-      return 'Hypertensive Crisis';
+    if (notes != null && notes!.length > maxNotesLength) {
+      throw ArgumentError('Notes must be at most $maxNotesLength characters');
     }
   }
 
-  /// Color for category indicator
-  Color get categoryColor {
-    switch (category) {
-      case 'Normal':
-        return Colors.green;
-      case 'Elevated':
-        return Colors.yellow[700]!;
-      case 'High BP Stage 1':
-        return Colors.orange;
-      case 'High BP Stage 2':
-        return Colors.red;
-      case 'Hypertensive Crisis':
-        return Colors.red[900]!;
-      default:
-        return Colors.grey;
-    }
-  }
+  BpCategory get bpCategory => BpCategory.classify(systolic, diastolic);
+
+  /// Human-readable category label.
+  String get category => bpCategory.label;
 
   /// Convert to Map for SQLite
   Map<String, dynamic> toMap() {

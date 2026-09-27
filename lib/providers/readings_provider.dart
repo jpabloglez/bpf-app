@@ -4,83 +4,70 @@ import '../models/reading_statistics.dart';
 import '../services/database_service.dart';
 
 class ReadingsProvider extends ChangeNotifier {
-  final DatabaseService _db = DatabaseService.instance;
+  ReadingsProvider({DatabaseService? database})
+      : _db = database ?? DatabaseService.instance;
 
-  List<BloodPressureReading> _readings = [];
+  final DatabaseService _db;
+
+  List<BloodPressureReading> _readings = const [];
   ReadingStatistics? _statistics;
   bool _isLoading = false;
+  bool _hasLoaded = false;
   String? _error;
 
   // Getters
   List<BloodPressureReading> get readings => _readings;
   ReadingStatistics? get statistics => _statistics;
   bool get isLoading => _isLoading;
+
+  /// True once the first load has completed (successfully or not).
+  bool get hasLoaded => _hasLoaded;
   String? get error => _error;
   bool get hasReadings => _readings.isNotEmpty;
 
   /// Load all readings from database
   Future<void> loadReadings() async {
-    _setLoading(true);
-    _clearError();
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
 
     try {
-      _readings = await _db.getAllReadings();
-      _calculateStatistics();
+      _setReadings(await _db.getAllReadings());
+    } catch (e) {
+      debugPrint('Failed to load readings: $e');
+      _error = 'Could not load your readings.';
+    } finally {
+      _isLoading = false;
+      _hasLoaded = true;
       notifyListeners();
-    } catch (e) {
-      _setError('Failed to load readings: $e');
-    } finally {
-      _setLoading(false);
     }
   }
 
-  /// Add new reading
+  /// Add new reading. Throws if it cannot be saved.
   Future<void> addReading(BloodPressureReading reading) async {
-    _setLoading(true);
-    _clearError();
-
-    try {
-      await _db.insertReading(reading);
-      await loadReadings(); // Reload to get the new reading with ID
-    } catch (e) {
-      _setError('Failed to add reading: $e');
-      rethrow;
-    } finally {
-      _setLoading(false);
-    }
+    await _db.insertReading(reading);
+    await loadReadings(); // Reload to get the new reading with ID
   }
 
-  /// Update existing reading
+  /// Update existing reading. Throws if it cannot be saved.
   Future<void> updateReading(BloodPressureReading reading) async {
-    _setLoading(true);
-    _clearError();
-
-    try {
-      await _db.updateReading(reading);
-      await loadReadings();
-    } catch (e) {
-      _setError('Failed to update reading: $e');
-      rethrow;
-    } finally {
-      _setLoading(false);
-    }
+    await _db.updateReading(reading);
+    await loadReadings();
   }
 
-  /// Delete reading
+  /// Delete reading. Removed from the list immediately (a dismissed list
+  /// item must disappear synchronously); restored and rethrown on failure.
   Future<void> deleteReading(int id) async {
-    _setLoading(true);
-    _clearError();
+    final previous = _readings;
+    _setReadings(previous.where((r) => r.id != id).toList());
+    notifyListeners();
 
     try {
       await _db.deleteReading(id);
-      _readings.removeWhere((r) => r.id == id);
-      _calculateStatistics();
+    } catch (_) {
+      _setReadings(previous);
       notifyListeners();
-    } catch (e) {
-      _setError('Failed to delete reading: $e');
       rethrow;
-    } finally {
-      _setLoading(false);
     }
   }
 
@@ -89,34 +76,12 @@ class ReadingsProvider extends ChangeNotifier {
     DateTime start,
     DateTime end,
   ) async {
-    try {
-      return await _db.getReadingsByDateRange(start, end);
-    } catch (e) {
-      _setError('Failed to load readings: $e');
-      return [];
-    }
+    return _db.getReadingsByDateRange(start, end);
   }
 
-  /// Calculate statistics
-  void _calculateStatistics() {
-    if (_readings.isEmpty) {
-      _statistics = null;
-    } else {
-      _statistics = ReadingStatistics.fromReadings(_readings);
-    }
-  }
-
-  void _setLoading(bool loading) {
-    _isLoading = loading;
-    notifyListeners();
-  }
-
-  void _setError(String error) {
-    _error = error;
-    notifyListeners();
-  }
-
-  void _clearError() {
-    _error = null;
+  void _setReadings(List<BloodPressureReading> readings) {
+    _readings = List.unmodifiable(readings);
+    _statistics =
+        readings.isEmpty ? null : ReadingStatistics.fromReadings(readings);
   }
 }

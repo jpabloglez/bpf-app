@@ -4,34 +4,49 @@ import 'package:path_provider/path_provider.dart';
 import '../models/blood_pressure_reading.dart';
 
 class DatabaseService {
-  static final DatabaseService instance = DatabaseService._internal();
-  static Database? _database;
+  static const String _table = 'blood_pressure_readings';
+  static const String _fileName = 'bp_tracker.db';
 
-  DatabaseService._internal();
+  static final DatabaseService instance = DatabaseService._internal();
+
+  final DatabaseFactory? _factory;
+  final String? _path;
+  Future<Database>? _database;
+
+  DatabaseService._internal()
+      : _factory = null,
+        _path = null;
 
   factory DatabaseService() => instance;
 
-  Future<Database> get database async {
-    if (_database != null) return _database!;
-    _database = await _initDatabase();
-    return _database!;
-  }
+  /// Creates a service backed by a custom [factory] and [path], e.g. an
+  /// in-memory FFI database in tests.
+  DatabaseService.withFactory(DatabaseFactory factory, String path)
+      : _factory = factory,
+        _path = path;
+
+  /// Opens the database once; concurrent callers share the same future.
+  Future<Database> get database => _database ??= _initDatabase();
 
   Future<Database> _initDatabase() async {
-    final documentsDirectory = await getApplicationDocumentsDirectory();
-    final path = join(documentsDirectory.path, 'bp_tracker.db');
-
-    return await openDatabase(
-      path,
+    final options = OpenDatabaseOptions(
       version: 1,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
+
+    if (_factory != null) {
+      return _factory.openDatabase(_path!, options: options);
+    }
+
+    final documentsDirectory = await getApplicationDocumentsDirectory();
+    final path = join(documentsDirectory.path, _fileName);
+    return databaseFactory.openDatabase(path, options: options);
   }
 
   Future<void> _onCreate(Database db, int version) async {
     await db.execute('''
-      CREATE TABLE blood_pressure_readings (
+      CREATE TABLE $_table (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         systolic INTEGER NOT NULL,
         diastolic INTEGER NOT NULL,
@@ -45,7 +60,7 @@ class DatabaseService {
     // Create index for faster queries
     await db.execute('''
       CREATE INDEX idx_timestamp
-      ON blood_pressure_readings(timestamp DESC)
+      ON $_table(timestamp DESC)
     ''');
   }
 
@@ -54,32 +69,21 @@ class DatabaseService {
     // Example: if (oldVersion < 2) { ... }
   }
 
-  /// Insert a new reading
+  /// Insert a new reading and return its id.
   Future<int> insertReading(BloodPressureReading reading) async {
     final db = await database;
 
     final map = reading.toMap();
     map['created_at'] = DateTime.now().millisecondsSinceEpoch;
 
-    return await db.insert(
-      'blood_pressure_readings',
-      map,
-      conflictAlgorithm: ConflictAlgorithm.replace,
-    );
+    return db.insert(_table, map);
   }
 
   /// Get all readings, sorted by timestamp (newest first)
   Future<List<BloodPressureReading>> getAllReadings() async {
     final db = await database;
-
-    final List<Map<String, dynamic>> maps = await db.query(
-      'blood_pressure_readings',
-      orderBy: 'timestamp DESC',
-    );
-
-    return List.generate(maps.length, (i) {
-      return BloodPressureReading.fromMap(maps[i]);
-    });
+    final maps = await db.query(_table, orderBy: 'timestamp DESC');
+    return maps.map(BloodPressureReading.fromMap).toList();
   }
 
   /// Get readings within date range
@@ -89,24 +93,22 @@ class DatabaseService {
   ) async {
     final db = await database;
 
-    final List<Map<String, dynamic>> maps = await db.query(
-      'blood_pressure_readings',
+    final maps = await db.query(
+      _table,
       where: 'timestamp >= ? AND timestamp <= ?',
       whereArgs: [start.millisecondsSinceEpoch, end.millisecondsSinceEpoch],
       orderBy: 'timestamp DESC',
     );
 
-    return List.generate(maps.length, (i) {
-      return BloodPressureReading.fromMap(maps[i]);
-    });
+    return maps.map(BloodPressureReading.fromMap).toList();
   }
 
   /// Get single reading by ID
   Future<BloodPressureReading?> getReadingById(int id) async {
     final db = await database;
 
-    final List<Map<String, dynamic>> maps = await db.query(
-      'blood_pressure_readings',
+    final maps = await db.query(
+      _table,
       where: 'id = ?',
       whereArgs: [id],
       limit: 1,
@@ -118,11 +120,15 @@ class DatabaseService {
 
   /// Update existing reading
   Future<int> updateReading(BloodPressureReading reading) async {
+    if (reading.id == null) {
+      throw ArgumentError('Cannot update a reading without an id');
+    }
     final db = await database;
 
-    return await db.update(
-      'blood_pressure_readings',
-      reading.toMap(),
+    final map = reading.toMap()..remove('id');
+    return db.update(
+      _table,
+      map,
       where: 'id = ?',
       whereArgs: [reading.id],
     );
@@ -131,34 +137,27 @@ class DatabaseService {
   /// Delete reading
   Future<int> deleteReading(int id) async {
     final db = await database;
-
-    return await db.delete(
-      'blood_pressure_readings',
-      where: 'id = ?',
-      whereArgs: [id],
-    );
+    return db.delete(_table, where: 'id = ?', whereArgs: [id]);
   }
 
   /// Delete all readings (use with caution!)
   Future<int> deleteAllReadings() async {
     final db = await database;
-    return await db.delete('blood_pressure_readings');
+    return db.delete(_table);
   }
 
   /// Get count of readings
   Future<int> getReadingCount() async {
     final db = await database;
-
-    final result = await db.rawQuery(
-      'SELECT COUNT(*) as count FROM blood_pressure_readings'
-    );
-
+    final result = await db.rawQuery('SELECT COUNT(*) as count FROM $_table');
     return Sqflite.firstIntValue(result) ?? 0;
   }
 
   /// Close database
   Future<void> close() async {
-    final db = await database;
-    await db.close();
+    final pending = _database;
+    if (pending == null) return;
+    _database = null;
+    await (await pending).close();
   }
 }

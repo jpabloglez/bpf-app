@@ -1,154 +1,119 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import '../models/blood_pressure_reading.dart';
+import 'category_chip.dart';
 
 class ReadingCard extends StatelessWidget {
   final BloodPressureReading reading;
   final VoidCallback? onTap;
-  final VoidCallback? onDelete;
 
   const ReadingCard({
-    Key? key,
+    super.key,
     required this.reading,
     this.onTap,
-    this.onDelete,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final muted = theme.colorScheme.onSurfaceVariant;
+    final category = reading.bpCategory;
+    final time = TimeOfDay.fromDateTime(reading.timestamp).format(context);
+    final notes = reading.notes;
+
     return Card(
-      margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 0),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
+        child: IntrinsicHeight(
           child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               // Category indicator
               Container(
-                width: 4,
-                height: 60,
-                decoration: BoxDecoration(
-                  color: reading.categoryColor,
-                  borderRadius: BorderRadius.circular(2),
-                ),
+                width: 6,
+                color: category.colorFor(theme.brightness),
               ),
-              const SizedBox(width: 16),
-
-              // Reading data
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Blood pressure
-                    Row(
-                      children: [
-                        Text(
-                          '${reading.systolic}/${reading.diastolic}',
-                          style: const TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        const Text(
-                          'mmHg',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.grey,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-
-                    // Heart rate and category
-                    Row(
-                      children: [
-                        const Icon(Icons.favorite, size: 16, color: Colors.red),
-                        const SizedBox(width: 4),
-                        Text(
-                          '${reading.heartRate} bpm',
-                          style: const TextStyle(fontSize: 14),
-                        ),
-                        const SizedBox(width: 16),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 2,
-                          ),
-                          decoration: BoxDecoration(
-                            color: reading.categoryColor.withOpacity(0.2),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            reading.category,
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: reading.categoryColor,
-                              fontWeight: FontWeight.w500,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Wrap(
+                        alignment: WrapAlignment.spaceBetween,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        spacing: 8,
+                        runSpacing: 4,
+                        children: [
+                          Text.rich(
+                            TextSpan(
+                              text: '${reading.systolic}/${reading.diastolic}',
+                              style: theme.textTheme.headlineSmall?.copyWith(
+                                fontWeight: FontWeight.w700,
+                              ),
+                              children: [
+                                TextSpan(
+                                  text: ' mmHg',
+                                  style: theme.textTheme.bodySmall
+                                      ?.copyWith(color: muted),
+                                ),
+                              ],
                             ),
                           ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-
-                    // Date and time
-                    Row(
-                      children: [
-                        const Icon(Icons.calendar_today, size: 14, color: Colors.grey),
-                        const SizedBox(width: 4),
-                        Text(
-                          DateFormat('MMM d, y').format(reading.timestamp),
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        const Icon(Icons.access_time, size: 14, color: Colors.grey),
-                        const SizedBox(width: 4),
-                        Text(
-                          DateFormat('HH:mm').format(reading.timestamp),
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey,
-                          ),
-                        ),
-                      ],
-                    ),
-
-                    // Notes (if present)
-                    if (reading.notes != null && reading.notes!.isNotEmpty) ...[
-                      const SizedBox(height: 8),
-                      Text(
-                        reading.notes!,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          fontStyle: FontStyle.italic,
-                          color: Colors.grey,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
+                          CategoryChip(category: category, dense: true),
+                        ],
                       ),
+                      const SizedBox(height: 6),
+                      Wrap(
+                        spacing: 16,
+                        runSpacing: 4,
+                        children: [
+                          _IconLabel(
+                            icon: Icons.favorite,
+                            label: '${reading.heartRate} bpm',
+                          ),
+                          _IconLabel(icon: Icons.schedule, label: time),
+                        ],
+                      ),
+                      if (notes != null && notes.isNotEmpty) ...[
+                        const SizedBox(height: 6),
+                        Text(
+                          notes,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: muted,
+                            fontStyle: FontStyle.italic,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
                     ],
-                  ],
+                  ),
                 ),
               ),
-
-              // Delete button
-              if (onDelete != null)
-                IconButton(
-                  icon: const Icon(Icons.delete_outline),
-                  color: Colors.red[300],
-                  onPressed: onDelete,
-                ),
             ],
           ),
         ),
       ),
+    );
+  }
+}
+
+class _IconLabel extends StatelessWidget {
+  const _IconLabel({required this.icon, required this.label});
+
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 16, color: theme.colorScheme.onSurfaceVariant),
+        const SizedBox(width: 4),
+        Text(label, style: theme.textTheme.bodyMedium),
+      ],
     );
   }
 }

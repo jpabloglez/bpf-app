@@ -5,19 +5,25 @@ class ReadingStatistics {
   final double avgDiastolic;
   final double avgHeartRate;
   final int totalReadings;
+  final BloodPressureReading? latestReading;
   final BloodPressureReading? highestReading;
   final BloodPressureReading? lowestReading;
-  final Map<String, int> categoryDistribution;
+  final Map<BpCategory, int> categoryDistribution;
 
   ReadingStatistics({
     required this.avgSystolic,
     required this.avgDiastolic,
     required this.avgHeartRate,
     required this.totalReadings,
+    this.latestReading,
     this.highestReading,
     this.lowestReading,
     required this.categoryDistribution,
   });
+
+  /// Category of the average blood pressure.
+  BpCategory get averageCategory =>
+      BpCategory.classify(avgSystolic.round(), avgDiastolic.round());
 
   factory ReadingStatistics.fromReadings(List<BloodPressureReading> readings) {
     if (readings.isEmpty) {
@@ -35,19 +41,26 @@ class ReadingStatistics {
     final totalDiastolic = readings.fold<int>(0, (sum, r) => sum + r.diastolic);
     final totalHeartRate = readings.fold<int>(0, (sum, r) => sum + r.heartRate);
 
-    // Find highest and lowest
-    BloodPressureReading highest = readings[0];
-    BloodPressureReading lowest = readings[0];
+    // Find latest, highest and lowest (by systolic, then diastolic)
+    var latest = readings[0];
+    var highest = readings[0];
+    var lowest = readings[0];
 
-    for (var reading in readings) {
-      if (reading.systolic > highest.systolic) highest = reading;
-      if (reading.systolic < lowest.systolic) lowest = reading;
+    int compareBp(BloodPressureReading a, BloodPressureReading b) {
+      final bySystolic = a.systolic.compareTo(b.systolic);
+      return bySystolic != 0 ? bySystolic : a.diastolic.compareTo(b.diastolic);
+    }
+
+    for (final reading in readings) {
+      if (reading.timestamp.isAfter(latest.timestamp)) latest = reading;
+      if (compareBp(reading, highest) > 0) highest = reading;
+      if (compareBp(reading, lowest) < 0) lowest = reading;
     }
 
     // Category distribution
-    final Map<String, int> distribution = {};
-    for (var reading in readings) {
-      distribution[reading.category] = (distribution[reading.category] ?? 0) + 1;
+    final distribution = <BpCategory, int>{};
+    for (final reading in readings) {
+      distribution.update(reading.bpCategory, (n) => n + 1, ifAbsent: () => 1);
     }
 
     return ReadingStatistics(
@@ -55,6 +68,7 @@ class ReadingStatistics {
       avgDiastolic: totalDiastolic / readings.length,
       avgHeartRate: totalHeartRate / readings.length,
       totalReadings: readings.length,
+      latestReading: latest,
       highestReading: highest,
       lowestReading: lowest,
       categoryDistribution: distribution,

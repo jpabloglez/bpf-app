@@ -2,26 +2,29 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'providers/readings_provider.dart';
 import 'screens/home_screen.dart';
+import 'theme.dart';
 
 void main() {
-  runApp(const MyApp());
+  runApp(const BpTrackerApp());
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({Key? key}) : super(key: key);
+class BpTrackerApp extends StatelessWidget {
+  const BpTrackerApp({super.key, this.createProvider});
+
+  /// Overrides how the readings provider is created (used by tests).
+  final ReadingsProvider Function()? createProvider;
 
   @override
   Widget build(BuildContext context) {
-    return MultiProvider(
-      providers: [
-        ChangeNotifierProvider(create: (_) => ReadingsProvider()..loadReadings()),
-      ],
+    return ChangeNotifierProvider(
+      create: (_) =>
+          (createProvider?.call() ?? ReadingsProvider())..loadReadings(),
       child: MaterialApp(
         title: 'BP Tracker',
-        theme: ThemeData(
-          primarySwatch: Colors.blue,
-          useMaterial3: true,
-        ),
+        debugShowCheckedModeBanner: false,
+        theme: buildTheme(Brightness.light),
+        darkTheme: buildTheme(Brightness.dark),
+        themeMode: ThemeMode.system,
         home: const HomeScreen(),
       ),
     );

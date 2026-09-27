@@ -8,7 +8,8 @@ Welcome to the Blood Pressure Tracker mobile app documentation. This documentati
 2. **[Development Setup](02-development-setup.md)** - Step-by-step guide to set up your development environment
 3. **[Testing Guide](03-testing-guide.md)** - Learn how to test your app on emulators and physical devices
 4. **[Deployment Guide](04-deployment-guide.md)** - Instructions for building, signing, and deploying to Play Store or direct distribution
-5. **[Feature Implementation](05-feature-implementation.md)** - Detailed implementation guide for core features
+5. **[Play Store Release Checklist](PLAY_STORE_RELEASE.md)** - The current, authoritative release steps (signing, Data safety, store assets)
+6. **[Feature Implementation](05-feature-implementation.md)** - Detailed implementation guide for core features
 
 ## Quick Start
 

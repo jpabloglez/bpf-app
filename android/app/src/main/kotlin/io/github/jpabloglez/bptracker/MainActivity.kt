@@ -1,4 +1,4 @@
-package com.example.bp_tracker
+package io.github.jpabloglez.bptracker
 
 import io.flutter.embedding.android.FlutterActivity
 

@@ -1,5 +1,12 @@
 # Deployment Guide
 
+> **Current configuration:** the build now uses `android/app/build.gradle.kts`
+> (Kotlin DSL), application ID `io.github.jpabloglez.bptracker`, compile/target
+> SDK 36 and upload-key signing from `android/key.properties`. Where the Groovy
+> `build.gradle` snippets below differ, follow
+> **[PLAY_STORE_RELEASE.md](PLAY_STORE_RELEASE.md)**. This guide is kept for
+> background.
+
 This guide covers building, signing, and deploying the Blood Pressure Tracker app to the Google Play Store and alternative distribution methods.
 
 ## Table of Contents

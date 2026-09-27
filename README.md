@@ -73,6 +73,7 @@ Comprehensive documentation is available in the `docs/` folder:
 - **[Development Setup](docs/02-development-setup.md)** - Complete setup guide
 - **[Testing Guide](docs/03-testing-guide.md)** - Testing on emulators and physical devices
 - **[Deployment Guide](docs/04-deployment-guide.md)** - Building and deploying to Play Store
+- **[Play Store Release Checklist](docs/PLAY_STORE_RELEASE.md)** - Short, current release runbook
 - **[Feature Implementation](docs/05-feature-implementation.md)** - Code implementation details
 
 ## Project Structure
@@ -80,6 +81,7 @@ Comprehensive documentation is available in the `docs/` folder:
 ```
 lib/
 ├── main.dart                   # App entry point
+├── theme.dart                  # Material 3 light/dark themes
 ├── models/                     # Data models
 │   ├── blood_pressure_reading.dart
 │   └── reading_statistics.dart
@@ -93,20 +95,24 @@ lib/
 │   ├── add_reading_screen.dart
 │   └── charts_screen.dart
 └── widgets/                    # Reusable components
+    ├── about.dart              # About dialog, disclaimer, privacy summary
+    ├── category_chip.dart
     ├── reading_card.dart
-    ├── statistics_card.dart
-    └── (chart widgets in screens)
+    └── statistics_card.dart
+
+test/                           # Unit, database (SQLite FFI) and widget tests
+store/                          # Play Store icon, feature graphic, listing text
 ```
 
 ## Technology Stack
 
-- **Framework**: Flutter 3.24+
-- **Language**: Dart 3.5+
+- **Framework**: Flutter 3.32+ (built and tested with 3.38)
+- **Language**: Dart 3.8+
 - **Database**: SQLite (sqflite)
 - **Charts**: fl_chart
 - **PDF**: pdf + printing packages
 - **State Management**: Provider
-- **Platform**: Android 7.0+ (API 24+)
+- **Platform**: Android 7.0+ (API 24+), targets Android 16 (API 36)
 
 ## Building for Release
 
@@ -120,24 +126,25 @@ Output: `build/app/outputs/flutter-apk/app-release.apk`
 
 ### App Bundle (for Play Store)
 
+Requires `android/key.properties` pointing at your upload keystore; the build
+refuses to produce a debug-signed bundle.
+
 ```bash
-flutter build appbundle --release
+flutter build appbundle --release --obfuscate --split-debug-info=build/symbols
 ```
 
 Output: `build/app/outputs/bundle/release/app-release.aab`
 
-See [Deployment Guide](docs/04-deployment-guide.md) for detailed instructions on signing and publishing.
+See the **[Play Store Release Checklist](docs/PLAY_STORE_RELEASE.md)** for signing,
+Play Console declarations (Data safety, Health apps) and store assets.
 
 ## Testing
 
 ### Run tests
 
 ```bash
-# Unit tests
+# Unit, database and widget tests
 flutter test
-
-# Integration tests
-flutter test integration_test/
 
 # With coverage
 flutter test --coverage
@@ -160,6 +167,10 @@ This is a personal project, but suggestions and feedback are welcome! Feel free 
 - **No Cloud**: No data transmission to external servers
 - **No Analytics**: No tracking or telemetry
 - **No Ads**: Completely ad-free
+- **No Permissions**: Not even internet access
+- **No Cloud Backup**: Readings are excluded from Google cloud backup (device-to-device transfer still works)
+
+See the full [Privacy Policy](PRIVACY_POLICY.md).
 
 ## License
 
@@ -173,7 +184,8 @@ Future enhancements (optional):
 - [ ] Data backup/restore to file
 - [ ] Multiple user profiles
 - [ ] Advanced analytics (weekly/monthly trends)
-- [ ] Dark mode theme
+- [x] Dark mode theme
+- [ ] Localization (currently English only)
 
 ## Support
 
